@@ -8,6 +8,16 @@ One way to approach this is by checking all possible combinations of truth value
 
 Can you list all 8 combinations of a, b, and c?
 
+    a   b   c
+    0   0   0
+    0   0   1
+    0   1   0
+    0   1   1
+    1   0   0
+    1   0   1
+    1   1   0 
+    1   1   1
+
 In general, for n variables, there will be 2^n possible assignments, so the approach of "trying everything" is not efficient for large n. In fact, this is the SAT ("satisfiability") problem, which is NP-complete, meaning that it is "one of the hardest problems to which solutions can be verified quickly. But this difficult problem is exactly what tools like the Z3 SMT solver! Here’s how we can solve the problem using the Z3:
 """
 def boolean_expressions():
@@ -59,10 +69,6 @@ def boolean_expressions():
     """
     The output unsat means unsatisfiable. The solver is telling us that there is no possible choice of a, b, c that makes the current constraints true.
     """
-
-
-
-
 
 """
 Z3 can find solutions to more than just SAT problems – it is an SMT solver.
@@ -125,7 +131,9 @@ def proof_by_unsat():
     x,y = Ints('x y')
     s = Solver()
 
-    # TODO: YOUR CODE HERE
+    # !(y>0) OR (x+y > x) -- logical expansion of implies
+    s.add(Not(y>0))
+    s.add(x+y>x)
 
     match s.check():
         case z3.unsat:
@@ -143,8 +151,14 @@ def demorgans_proof():
         """
         Print "No counterexample can be found, therefore the statement is true" if the given formula f is true, otherwise print "The formula f is false, with counterexample given by: " and the model that shows the formula to be false.
         """
-        # TODO: YOUR CODE HERE
-        pass
+        s = Solver()
+        s.add(f)
+
+        match s.check():
+            case z3.sat:
+                print("No counterexample can be found, therefore the statement is true")
+            case z3.unsat:
+                print(f"The formula f is false, with counterexample given by: {s.model()}")
 
     prove(demorgan)
 
