@@ -316,13 +316,12 @@ def sudoku(puzzle: tuple[tuple[int, ...], ...]):
                 reconstructed_row.append(res)
             
             grid.append(reconstructed_row)
-
         return grid
             
     # check the solution
     match s.check():
         case z3.sat:
-            print(f"puzzle: {print_sudoku(modelToGrid(s.model(), logical_sudoku))}")
+            print_sudoku(modelToGrid(s.model(), logical_sudoku))
         case z3.unsat:
             print("The puzzle is impossible")
 
