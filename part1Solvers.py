@@ -173,6 +173,8 @@ def wedding_planning():
     There are three seats: left, middle, right.
     There are three guests: Alice, Bob, Charlie.
 
+
+
     The requirements are that:
 
     - Alice does not sit next to Charlie
@@ -189,11 +191,25 @@ def wedding_planning():
     or
         "There is no acceptable seating arraignment"
     """
-    #TODO: YOUR CODE HERE
 
+    a, b, c = Bools('Alice Charlie Bob')
+    l, m, r = Bools('left middle right')
 
+    clause_1 = And(a, Not(l)) # alice does not sit in the leftmost chair
+    clause_2 = And(a, Not(m)) # alice cant sit in the middle because she cant sit next to charlie
+    clause_3 = Or(And(And(b,l), And(c,m)), And(And(b,m), And(c,r))) # bob has to sit to the left of charlie
+ 
+    s = Solver()
+    s.add(clause_1)
+    s.add(clause_2)
+    s.add(clause_3)
 
+    match s.check():
+        case z3.sat:
+            print(f"The satisfying argument is:{s.model()}") 
 
+        case z3.unsat:
+            print("There is no acceptable arraignment")
 
 """
 Lets try to solve a more complex puzzle like sudoku, given an arbitrary input.
@@ -211,13 +227,104 @@ def print_sudoku(grid):
     print('-'*25)
 
 
-def sudoku(puzzle):
+def sudoku(puzzle: tuple[tuple[int, ...], ...]):
 
     """
     Use print_sudoku to print your solution to puzzle or otherwise print "The puzzle is impossible.".
     """
-    #TODO: YOUR CODE HERE
 
+    s = Solver()
+
+    logical_sudoku = []
+    cols_grid = []
+
+    # make the logical variables
+    for i, row in enumerate(puzzle):
+        logical_row = []
+
+        # go through each col in a row
+        for j in range(len(row)):
+            if (i == 0):
+                cols_grid.append([])
+
+            # make a new int
+            logical_int = Int(f'r{i}c{j}')
+
+            # save the constraint into the solver 
+            if (row[j] > 0):
+                s.add(logical_int == puzzle[i][j])
+            else:
+                # numbers can only range from 1-9
+                s.add(logical_int < 10) 
+                s.add(logical_int > 0)
+
+            # save the variable (no matter what it is into the array)
+            logical_row.append(logical_int)
+            cols_grid[j].append(logical_int)
+
+        # save the filled out row into the board array
+        logical_sudoku.append(logical_row)
+    
+    # encode row rules
+    for row in logical_sudoku:
+        s.add(Distinct(col for col in row))
+
+    # encode col rules
+    for col in cols_grid:
+        s.add(Distinct(val for val in col))
+
+
+    # encode 3x3 rules
+    num_cells = 0
+    num_three_by_threes = 0
+
+    if puzzle[0]:
+        num_cells = len(puzzle[0])**2 # all the  
+
+    num_three_by_threes = num_cells // 9 
+    num_tbt_per_row = num_three_by_threes // 3 
+
+    tbt = []
+
+    # extract coordinates of each 3x3 chunk
+    for i in range(num_tbt_per_row):
+        for j in range(num_tbt_per_row):
+            # clean slate
+            tbt = []
+
+            # populate the 3x3 with it's values
+            start_row = j * 3
+            start_col = i * 3
+
+            # coordinates inside the 3x3 in question
+            for k in range(3):
+                for l in range(3):
+                    tbt.append(logical_sudoku[start_row + k][start_col + l])
+
+            # commit the 3x3 to the solver
+            s.add(Distinct(tbt))
+    
+    # turns the solver model back into a grid
+    def modelToGrid(model, logical_grid):
+        grid: list[list[int]] = [] 
+
+        for row in logical_grid:
+            reconstructed_row = []
+
+            for val in row:
+                res = model[val].py_value()
+                reconstructed_row.append(res)
+            
+            grid.append(reconstructed_row)
+
+        return grid
+            
+    # check the solution
+    match s.check():
+        case z3.sat:
+            print(f"puzzle: {print_sudoku(modelToGrid(s.model(), logical_sudoku))}")
+        case z3.unsat:
+            print("The puzzle is impossible")
 
 
 instance = ((0,0,0,0,9,4,0,3,0),
