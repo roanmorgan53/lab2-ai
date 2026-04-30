@@ -353,9 +353,43 @@ def coin_sum(total):
     # penny, nickle, dime, quarter, fifty cent coin, dollar coin
     p,n,d,q,f,c = Ints('p n d q f c')
 
-    """
-    Print the number of ways the $2 can be made using any number of the above coins.
+    coin_amnts = [p, n, d, q, f, c]
 
-    Hint: You may need to run many related but slightly different model checks.
-    """
-    # TODO: YOUR CODE HERE
+    successes = 0
+    s = Solver()
+
+    s.add(p >= 0)
+    s.add(n >= 0)
+    s.add(d >= 0)
+    s.add(q >= 0)
+    s.add(f >= 0)
+    s.add(c >= 0)
+
+    # add all the values to the coins 
+    pv = 1
+    nv = 5
+    dv = 10
+    qv = 25
+    fv = 50
+    cv = 100
+
+    s.add((p*pv + n*nv + d*dv + q*qv + f*fv + c*cv) == total)
+
+    # go through all the different combinations until the options are exhausted
+    while True:
+        match s.check():
+            case z3.sat:
+                successes += 1
+
+                # remove this possibility from the solver
+                model = s.model()
+
+                # get rid of this satisfiable case so another soln can be found
+                removal_clause = Not(And([coin == model[coin] for coin in coin_amnts]))
+                s.add(removal_clause)
+
+            case z3.unsat:
+                break;
+
+    print(successes)
+
